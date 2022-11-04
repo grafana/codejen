@@ -34,8 +34,8 @@ import (
 // when adding a new file or merging another GenFS, an error is returned.
 // TODO introduce a search/match system
 type GenFS struct {
+	mapFS
 	mu sync.Mutex
-	m  map[string]file
 }
 
 // ShouldExistErr is an error that indicates a file should exist, but does not.
@@ -47,34 +47,29 @@ type ShouldExistErr struct {
 type ContentsDifferErr struct {
 }
 
+// File represents a single file object within a GenFS.
 type File struct {
 	// The relative path to which the generated file should be written.
 	RelativePath string
+
 	// Contents of the generated file.
 	Data []byte
+
+	// From is the stack of Generiters responsible for producing this File.
+	From []Generiter
 }
 
-// ToDiffer turns a single File into a GenFS containing only
+// ToFS turns a single File into a GenFS containing only
 // that file, given an owner string.
 //
 // An error is only possible if an absolute path is provided.
-func (f File) ToDiffer(owner string) (*GenFS, error) {
+func (f *File) ToFS(owner string) (*GenFS, error) {
 	wd := New()
 	err := wd.add(owner, f)
 	if err != nil {
 		return nil, err
 	}
 	return wd, nil
-}
-
-// ToDifferP wraps ToDiffer, but provides errorless calling ergonomics
-// by panicking in the event of an absolute path error.
-func (f File) ToDifferP(owner string) *GenFS {
-	wd, err := f.ToDiffer(owner)
-	if err != nil {
-		panic(err)
-	}
-	return wd
 }
 
 type file struct {
@@ -85,7 +80,7 @@ type file struct {
 // New creates a new GenFS, ready for use.
 func New() *GenFS {
 	return &GenFS{
-		m: make(map[string]file),
+		mapFS: make(mapFS),
 	}
 }
 
@@ -169,16 +164,16 @@ func (wd *GenFS) Write(ctx context.Context, prefix string) error {
 }
 
 func (wd *GenFS) toSlice() writeSlice {
-	sl := make(writeSlice, 0, len(wd.m))
+	sl := make(writeSlice, 0, len(wd.mapFS))
 	type ws struct {
 		path     string
 		contents []byte
 	}
 
-	for k, v := range wd.m {
+	for k, v := range wd.mapFS {
 		sl = append(sl, ws{
 			path:     k,
-			contents: v.b,
+			contents: v.Data,
 		})
 	}
 
@@ -192,24 +187,21 @@ func (wd *GenFS) toSlice() writeSlice {
 // Add adds one or more files to the GenFS. An error is returned if any of
 // the provided files would conflict a file already declared added to the
 // GenFS.
-//
-// owner is an opaque string that identifies the creator of these files. It is
-// used solely in to make path conflict errors more informative.
-func (wd *GenFS) Add(owner string, flist ...File) error {
+func (wd *GenFS) Add(owner string, flist ...*File) error {
 	wd.mu.Lock()
 	err := wd.add(owner, flist...)
 	wd.mu.Unlock()
 	return err
 }
 
-func (wd *GenFS) add(owner string, flist ...File) error {
+func (wd *GenFS) add(owner string, flist ...*File) error {
 	var result *multierror.Error
 	for _, f := range flist {
-		if rf, has := wd.m[f.RelativePath]; has {
-			result = multierror.Append(result, fmt.Errorf("writediffer cannot create %s for %q, already created for %q", f.RelativePath, owner, rf.owner))
+		if rf, has := wd.mapFS[f.RelativePath]; has {
+			result = multierror.Append(result, fmt.Errorf("GenFS cannot create %s for %q, already created for %q", f.RelativePath, owner, rf.owner))
 		}
 		if filepath.IsAbs(f.RelativePath) {
-			result = multierror.Append(result, fmt.Errorf("files added to writediffer must have relative paths, got %s from %q", f.RelativePath, owner))
+			result = multierror.Append(result, fmt.Errorf("files added to GenFS must have relative paths, got %s from %q", f.RelativePath, owner))
 		}
 	}
 	if result.ErrorOrNil() != nil {
@@ -217,7 +209,7 @@ func (wd *GenFS) add(owner string, flist ...File) error {
 	}
 
 	for _, f := range flist {
-		wd.m[f.RelativePath] = file{b: f.Data, owner: owner}
+		wd.mapFS[f.RelativePath] = &mapFile{Data: f.Data, Sys: owner}
 	}
 	return nil
 }
@@ -229,8 +221,8 @@ func (wd *GenFS) Merge(wd2 *GenFS) error {
 	defer wd.mu.Unlock()
 	var result *multierror.Error
 
-	for k, inf := range wd2.m {
-		result = multierror.Append(result, wd.add(inf.owner, File{RelativePath: k, Data: inf.b}))
+	for k, inf := range wd2.mapFS {
+		result = multierror.Append(result, wd.add(inf.Sys.(string), &File{RelativePath: k, Data: inf.Data}))
 	}
 
 	return result.ErrorOrNil()
