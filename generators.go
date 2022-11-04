@@ -1,4 +1,4 @@
-package generite
+package jennywrites
 
 import (
 	"fmt"
