@@ -56,7 +56,7 @@ type File struct {
 	Data []byte
 
 	// From is the stack of Generiters responsible for producing this File.
-	From []Generiter
+	From []Namer
 }
 
 // ToFS turns a single File into a GenFS containing only
