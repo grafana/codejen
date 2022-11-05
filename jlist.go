@@ -13,6 +13,15 @@ type jnode struct {
 	j    any
 }
 
+// JennyListWithNamer creates a new JennyList with a func that can add information
+// to errors by deriving a meaningful identifier string from the Input type for
+// the JennyList.
+func JennyListWithNamer[Input any](namer func(t Input) string) *JennyList[Input] {
+	return &JennyList[Input]{
+		inputnamer: namer,
+	}
+}
+
 // JennyList is an ordered collection of jennies. JennyList itself implements
 // [ManyToMany], and when called, will construct an [FS] by calling each of its
 // contained jennies in order.
@@ -28,6 +37,8 @@ type jnode struct {
 //
 // JennyList's Input type parameter is used to enforce that every Jenny in the
 // JennyList takes the same type parameter.
+//
+// An empty JennyList is ready for use.
 type JennyList[Input any] struct {
 	mut sync.RWMutex
 

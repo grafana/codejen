@@ -38,3 +38,11 @@ type Jenny[Input any] interface {
 type NamedJenny interface {
 	JennyName() string
 }
+
+// This library was originally written with the type Jinspiration used as the
+// type for Input type parameters. As in, `type Jenny[Input Jinspiration]`.
+//
+// It's preserved here because you, dear reader of source code, deserve to
+// giggle today.
+//
+// type Jinspiration any
