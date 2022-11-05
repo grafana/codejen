@@ -98,7 +98,7 @@ func (fs *FS) Verify(ctx context.Context, prefix string) error {
 	g.SetLimit(12)
 	var result *multierror.Error
 
-	for _, it := range fs.toSortedSlice() {
+	for _, it := range fs.AsFiles() {
 		item := it
 		g.Go(func() error {
 			ipath := filepath.Join(prefix, item.RelativePath)
@@ -139,7 +139,7 @@ func (fs *FS) Write(ctx context.Context, prefix string) error {
 	g, _ := errgroup.WithContext(ctx)
 	g.SetLimit(12)
 
-	for _, item := range fs.toSortedSlice() {
+	for _, item := range fs.AsFiles() {
 		it := item
 		g.Go(func() error {
 			path := filepath.Join(prefix, it.RelativePath)
@@ -158,8 +158,11 @@ func (fs *FS) Write(ctx context.Context, prefix string) error {
 	return g.Wait()
 }
 
-// asSortedSlice returns a slice of File representing the contents of the FS.
-func (fs *FS) toSortedSlice() []File {
+// AsFiles returns a Files representing the contents of the FS.
+//
+// The contents are sorted lexicographically, and it is guaranteed that the
+// invariants enforced by [Files.Validate] are met.
+func (fs *FS) AsFiles() []File {
 	fs.mu.RLock()
 	sl := make([]File, 0, len(fs.mapFS))
 
@@ -185,10 +188,15 @@ func (fs *FS) Add(flist ...File) error {
 }
 
 func (fs *FS) add(flist ...File) error {
-	var result *multierror.Error
 	if err := Files(flist).Validate(); err != nil {
-		result = multierror.Append(result, err)
+		return err
 	}
+
+	return fs.addValidated(flist...)
+}
+
+func (fs *FS) addValidated(flist ...File) error {
+	var result *multierror.Error
 
 	for _, f := range flist {
 		if rf, has := fs.mapFS[f.RelativePath]; has {
@@ -239,7 +247,7 @@ type FileMapper func(File) (File, error)
 // Map creates a new FS by passing each [File] element in the receiver FS
 // through the provided [FileMapper].
 func (fs *FS) Map(fn FileMapper) (*FS, error) {
-	flist := fs.toSortedSlice()
+	flist := fs.AsFiles()
 	nflist := make([]File, 0, len(flist))
 	for _, file := range flist {
 		nf, err := fn(file)

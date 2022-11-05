@@ -3,9 +3,9 @@ package jennywrites
 type OneToMany[Input any] interface {
 	Jenny[Input]
 
-	// Generate takes an Input and generates one [File], or none (nil) if the j
+	// Generate takes an Input and generates many [File]s, or none (nil) if the j
 	// was a no-op for the provided Input.
-	Generate(Input) (*GenFS, error)
+	Generate(Input) (Files, error)
 }
 
 type o2mAdapt[AdaptedInput, OriginalInput any] struct {
@@ -17,7 +17,7 @@ func (oa *o2mAdapt[AdaptedInput, OriginalInput]) JennyName() string {
 	return oa.j.JennyName()
 }
 
-func (oa *o2mAdapt[AdaptedInput, OriginalInput]) Generate(t AdaptedInput) (*GenFS, error) {
+func (oa *o2mAdapt[AdaptedInput, OriginalInput]) Generate(t AdaptedInput) (Files, error) {
 	return oa.j.Generate(oa.fn(t))
 }
 

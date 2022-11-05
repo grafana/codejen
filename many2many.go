@@ -4,12 +4,12 @@ package jennywrites
 type ManyToMany[Input any] interface {
 	Jenny[Input]
 
-	// Generate takes a slice of Input and generates zero to n files, returning them
-	// within a GenFS.
+	// Generate takes a slice of Input and generates many [File]s, or none (nil) if the j
+	// was a no-op for the provided Input.
 	//
 	// A nil, nil return is used to indicate the generator had nothing to do for the
 	// provided Input.
-	Generate([]Input) (*GenFS, error)
+	Generate([]Input) (Files, error)
 }
 
 type m2mAdapt[AdaptedInput, OriginalInput any] struct {
@@ -21,7 +21,7 @@ func (oa *m2mAdapt[AdaptedInput, OriginalInput]) JennyName() string {
 	return oa.j.JennyName()
 }
 
-func (oa *m2mAdapt[AdaptedInput, OriginalInput]) Generate(ps []AdaptedInput) (*GenFS, error) {
+func (oa *m2mAdapt[AdaptedInput, OriginalInput]) Generate(ps []AdaptedInput) (Files, error) {
 	qs := make([]OriginalInput, len(ps))
 	for i, p := range ps {
 		qs[i] = oa.fn(p)

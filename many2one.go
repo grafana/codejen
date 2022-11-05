@@ -3,12 +3,10 @@ package jennywrites
 type ManyToOne[Input any] interface {
 	Jenny[Input]
 
-	// Generate takes a slice of Input and generates one file, returning them
-	// within a File.
-	//
-	// A nil, nil return is used to indicate the j was a no-op for the
-	// provided Inputs.
-	Generate([]Input) (*File, error)
+	// Generate takes a slice of Input and generates one File, The zero value of a
+	// File may be returned to indicate the jenny was a no-op for the provided
+	// Inputs.
+	Generate([]Input) (File, error)
 }
 
 type m2oAdapt[AdaptedInput, OriginalInput any] struct {
@@ -20,7 +18,7 @@ func (oa *m2oAdapt[AdaptedInput, OriginalInput]) JennyName() string {
 	return oa.g.JennyName()
 }
 
-func (oa *m2oAdapt[AdaptedInput, OriginalInput]) Generate(ps []AdaptedInput) (*File, error) {
+func (oa *m2oAdapt[AdaptedInput, OriginalInput]) Generate(ps []AdaptedInput) (File, error) {
 	qs := make([]OriginalInput, len(ps))
 	for i, p := range ps {
 		qs[i] = oa.fn(p)
