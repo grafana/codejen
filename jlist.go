@@ -103,7 +103,7 @@ func (js *JennyList[Input]) GenerateFS(objs []Input) (*FS, error) {
 	}
 	oneout := func(j Jenny[Input], f *File, err error) error {
 		// err will be handled in manyout
-		if err == nil && !f.Exists() {
+		if err == nil && (f == nil || !f.Exists()) {
 			return nil
 		}
 		return manyout(j, Files{*f}, err)

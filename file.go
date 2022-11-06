@@ -2,6 +2,7 @@ package jennywrites
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
@@ -44,8 +45,24 @@ func (f File) toMapFile() *mapFile {
 }
 
 // Exists indicates whether the File should be considered to exist.
-func (f *File) Exists() bool {
-	return f != nil && f.RelativePath != ""
+func (f File) Exists() bool {
+	return f.RelativePath != ""
+}
+
+// Validate checks that the File is valid - has a relative path, and at least
+// one jenny in its From.
+func (f File) Validate() error {
+	if !f.Exists() {
+		return nil
+	}
+
+	if filepath.IsAbs(f.RelativePath) {
+		return fmt.Errorf("%s: File paths must be relative", f.RelativePath)
+	}
+	if len(f.From) == 0 {
+		return fmt.Errorf("%s: File must have at least one From jenny", f.RelativePath)
+	}
+	return nil
 }
 
 // Files is a set of File objects.
@@ -60,7 +77,9 @@ func (fsl Files) Validate() error {
 	var result *multierror.Error
 	paths := make(map[string][][]NamedJenny)
 	for _, f := range fsl {
-		if !f.Exists() {
+		if err := f.Validate(); err != nil {
+			result = multierror.Append(result, err)
+		} else if !f.Exists() {
 			result = multierror.Append(result, fmt.Errorf(`nonexistent File (RelativePath == "") not allowed within Files slice`))
 		} else if exist, has := paths[f.RelativePath]; has {
 			paths[f.RelativePath] = append(exist, f.From)
