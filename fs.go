@@ -200,9 +200,9 @@ func (fs *FS) addValidated(flist ...File) error {
 
 	for _, f := range flist {
 		if rf, has := fs.mapFS[f.RelativePath]; has {
-			result = multierror.Append(result, fmt.Errorf("FS cannot create %s for %q, already created for %q", f.RelativePath, jennystack(f.From), stack(rf)))
+			result = multierror.Append(result, fmt.Errorf("cannot create %s for jenny %q, path already created by jenny %q", f.RelativePath, jennystack(f.From), stack(rf)))
 		} else if filepath.IsAbs(f.RelativePath) {
-			result = multierror.Append(result, fmt.Errorf("files added to FS must have relative paths, got %s from %q", f.RelativePath, jennystack(f.From)))
+			result = multierror.Append(result, fmt.Errorf("files must have relative paths, got %s from %q", f.RelativePath, jennystack(f.From)))
 		}
 	}
 

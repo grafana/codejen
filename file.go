@@ -7,6 +7,16 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
+// NewFile makes it slightly more ergonomic to create a new File than
+// with a raw struct declaration.
+func NewFile(path string, data []byte, from ...NamedJenny) *File {
+	return &File{
+		RelativePath: path,
+		Data:         data,
+		From:         from,
+	}
+}
+
 // File is a single file, intended to be written or compared against
 // existing files on disk through an [FS].
 //
@@ -34,8 +44,8 @@ func (f File) toMapFile() *mapFile {
 }
 
 // Exists indicates whether the File should be considered to exist.
-func (f File) Exists() bool {
-	return f.RelativePath != ""
+func (f *File) Exists() bool {
+	return f != nil && f.RelativePath != ""
 }
 
 // Files is a set of File objects.

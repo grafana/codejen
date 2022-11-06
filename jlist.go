@@ -10,12 +10,12 @@ import (
 
 type jnode struct {
 	next *jnode
-	j    any
+	j    NamedJenny
 }
 
-// JennyListWithNamer creates a new JennyList with a func that can add information
-// to errors by deriving a meaningful identifier string from the Input type for
-// the JennyList.
+// JennyListWithNamer creates a new JennyList that decorates errors using the
+// provided namer func, which can derive a meaningful identifier string from the
+// Input type for the JennyList.
 func JennyListWithNamer[Input any](namer func(t Input) string) *JennyList[Input] {
 	return &JennyList[Input]{
 		inputnamer: namer,
@@ -37,8 +37,6 @@ func JennyListWithNamer[Input any](namer func(t Input) string) *JennyList[Input]
 //
 // JennyList's Input type parameter is used to enforce that every Jenny in the
 // JennyList takes the same type parameter.
-//
-// An empty JennyList is ready for use.
 type JennyList[Input any] struct {
 	mut sync.RWMutex
 
@@ -62,7 +60,7 @@ type JennyList[Input any] struct {
 
 func (js *JennyList[Input]) last() *jnode {
 	j := js.first
-	for j.next != nil {
+	for j != nil && j.next != nil {
 		j = j.next
 	}
 	return j
@@ -86,45 +84,49 @@ func (js *JennyList[Input]) GenerateFS(objs []Input) (*FS, error) {
 	js.mut.RLock()
 	defer js.mut.RUnlock()
 
+	if js.first == nil {
+		return nil, nil
+	}
+
 	jfs := NewFS()
 
 	manyout := func(j Jenny[Input], fl Files, err error) error {
 		if err != nil {
-			// result = multierror.Append(result, fmt.Errorf("%s: %w", j.JennyName(), err))
 			return fmt.Errorf("%s: %w", j.JennyName(), err)
 		}
 
 		if err = fl.Validate(); err != nil {
-			// result = multierror.Append(result, fmt.Errorf("%s: %w", j.JennyName(), err))
 			// This is unreachable in the case where there was a single File output, so plural is fine
 			return fmt.Errorf("%s returned invalid Files: %w", j.JennyName(), err)
 		}
 		return jfs.addValidated(fl...)
 	}
-	oneout := func(j Jenny[Input], f File, err error) error {
+	oneout := func(j Jenny[Input], f *File, err error) error {
 		// err will be handled in manyout
 		if err == nil && !f.Exists() {
 			return nil
 		}
-		return manyout(j, Files{f}, err)
+		return manyout(j, Files{*f}, err)
 	}
 
 	result := new(multierror.Error)
 	jn := js.first
-	for jn.next != nil {
-		jn = jn.next
-
+	for jn != nil {
 		var handlerr error
 		switch jenny := jn.j.(type) {
 		case OneToOne[Input]:
 			for _, obj := range objs {
 				f, err := jenny.Generate(obj)
-				handlerr = js.wrapinerr(obj, oneout(jenny, f, err))
+				if procerr := js.wrapinerr(obj, oneout(jenny, f, err)); procerr != nil {
+					result = multierror.Append(result, procerr)
+				}
 			}
 		case OneToMany[Input]:
 			for _, obj := range objs {
 				fl, err := jenny.Generate(obj)
-				handlerr = js.wrapinerr(obj, manyout(jenny, fl, err))
+				if procerr := js.wrapinerr(obj, manyout(jenny, fl, err)); procerr != nil {
+					result = multierror.Append(result, procerr)
+				}
 			}
 		case ManyToOne[Input]:
 			f, err := jenny.Generate(objs)
@@ -139,10 +141,11 @@ func (js *JennyList[Input]) GenerateFS(objs []Input) (*FS, error) {
 		if handlerr != nil {
 			result = multierror.Append(result, handlerr)
 		}
+		jn = jn.next
 	}
 
 	if result.ErrorOrNil() != nil {
-		return nil, result
+		return nil, multierror.Flatten(result)
 	}
 
 	return jfs, nil
@@ -171,7 +174,7 @@ func (js *JennyList[Input]) append(n ...*jnode) {
 	js.mut.Unlock()
 }
 
-func tojnode[J any](jennies ...J) []*jnode {
+func tojnode[J NamedJenny](jennies ...J) []*jnode {
 	nlist := make([]*jnode, len(jennies))
 	for i, j := range jennies {
 		nlist[i] = &jnode{

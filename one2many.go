@@ -8,16 +8,16 @@ type OneToMany[Input any] interface {
 	Generate(Input) (Files, error)
 }
 
-type o2mAdapt[AdaptedInput, OriginalInput any] struct {
+type o2mAdapt[OriginalInput, AdaptedInput any] struct {
 	fn func(AdaptedInput) OriginalInput
 	j  OneToMany[OriginalInput]
 }
 
-func (oa *o2mAdapt[AdaptedInput, OriginalInput]) JennyName() string {
+func (oa *o2mAdapt[OriginalInput, AdaptedInput]) JennyName() string {
 	return oa.j.JennyName()
 }
 
-func (oa *o2mAdapt[AdaptedInput, OriginalInput]) Generate(t AdaptedInput) (Files, error) {
+func (oa *o2mAdapt[OriginalInput, AdaptedInput]) Generate(t AdaptedInput) (Files, error) {
 	return oa.j.Generate(oa.fn(t))
 }
 
@@ -27,8 +27,8 @@ func (oa *o2mAdapt[AdaptedInput, OriginalInput]) Generate(t AdaptedInput) (Files
 // to an AdaptedInput.
 //
 // Use this to make jennies reusable in other Input type contexts.
-func AdaptOneToMany[AdaptedInput, OriginalInput any](j OneToMany[OriginalInput], fn func(AdaptedInput) OriginalInput) OneToMany[AdaptedInput] {
-	return &o2mAdapt[AdaptedInput, OriginalInput]{
+func AdaptOneToMany[OriginalInput, AdaptedInput any](j OneToMany[OriginalInput], fn func(AdaptedInput) OriginalInput) OneToMany[AdaptedInput] {
+	return &o2mAdapt[OriginalInput, AdaptedInput]{
 		fn: fn,
 		j:  j,
 	}

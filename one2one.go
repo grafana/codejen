@@ -5,19 +5,19 @@ type OneToOne[Input any] interface {
 
 	// Generate takes an Input and generates one [File]. The zero value of a File
 	// may be returned to indicate the jenny was a no-op for the provided Input.
-	Generate(Input) (File, error)
+	Generate(Input) (*File, error)
 }
 
-type o2oAdapt[AdaptedInput, OriginalInput any] struct {
+type o2oAdapt[OriginalInput, AdaptedInput any] struct {
 	fn func(AdaptedInput) OriginalInput
 	j  OneToOne[OriginalInput]
 }
 
-func (oa *o2oAdapt[AdaptedInput, OriginalInput]) JennyName() string {
+func (oa *o2oAdapt[OriginalInput, AdaptedInput]) JennyName() string {
 	return oa.j.JennyName()
 }
 
-func (oa *o2oAdapt[AdaptedInput, OriginalInput]) Generate(t AdaptedInput) (File, error) {
+func (oa *o2oAdapt[OriginalInput, AdaptedInput]) Generate(t AdaptedInput) (*File, error) {
 	return oa.j.Generate(oa.fn(t))
 }
 
@@ -27,8 +27,8 @@ func (oa *o2oAdapt[AdaptedInput, OriginalInput]) Generate(t AdaptedInput) (File,
 // to an AdaptedInput.
 //
 // Use this to make jennies reusable in other Input type contexts.
-func AdaptOneToOne[AdaptedInput, OriginalInput any](j OneToOne[OriginalInput], fn func(AdaptedInput) OriginalInput) OneToOne[AdaptedInput] {
-	return &o2oAdapt[AdaptedInput, OriginalInput]{
+func AdaptOneToOne[OriginalInput, AdaptedInput any](j OneToOne[OriginalInput], fn func(AdaptedInput) OriginalInput) OneToOne[AdaptedInput] {
+	return &o2oAdapt[OriginalInput, AdaptedInput]{
 		fn: fn,
 		j:  j,
 	}

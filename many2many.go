@@ -12,16 +12,16 @@ type ManyToMany[Input any] interface {
 	Generate([]Input) (Files, error)
 }
 
-type m2mAdapt[AdaptedInput, OriginalInput any] struct {
+type m2mAdapt[OriginalInput, AdaptedInput any] struct {
 	fn func(AdaptedInput) OriginalInput
 	j  ManyToMany[OriginalInput]
 }
 
-func (oa *m2mAdapt[AdaptedInput, OriginalInput]) JennyName() string {
+func (oa *m2mAdapt[OriginalInput, AdaptedInput]) JennyName() string {
 	return oa.j.JennyName()
 }
 
-func (oa *m2mAdapt[AdaptedInput, OriginalInput]) Generate(ps []AdaptedInput) (Files, error) {
+func (oa *m2mAdapt[OriginalInput, AdaptedInput]) Generate(ps []AdaptedInput) (Files, error) {
 	qs := make([]OriginalInput, len(ps))
 	for i, p := range ps {
 		qs[i] = oa.fn(p)
@@ -35,8 +35,8 @@ func (oa *m2mAdapt[AdaptedInput, OriginalInput]) Generate(ps []AdaptedInput) (Fi
 // to an AdaptedInput.
 //
 // Use this to make jennies reusable in other Input type contexts.
-func AdaptManyToMany[AdaptedInput, OriginalInput any](j ManyToMany[OriginalInput], fn func(AdaptedInput) OriginalInput) ManyToMany[AdaptedInput] {
-	return &m2mAdapt[AdaptedInput, OriginalInput]{
+func AdaptManyToMany[OriginalInput, AdaptedInput any](j ManyToMany[OriginalInput], fn func(AdaptedInput) OriginalInput) ManyToMany[AdaptedInput] {
+	return &m2mAdapt[OriginalInput, AdaptedInput]{
 		fn: fn,
 		j:  j,
 	}
