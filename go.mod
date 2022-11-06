@@ -1,4 +1,4 @@
-module github.com/sdboyer/writediff
+module github.com/sdboyer/jennywrites
 
 go 1.19
 
