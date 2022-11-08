@@ -1,16 +1,16 @@
-package jennywrites
+package codejen
 
-// A Jenny is a single jennywrites code generator.
+// A Jenny is a single codejen code generator.
 //
 // Each Jenny works with exactly one type of input to its code generation, as
-// indicated by type parameter. jennywrites follows a naming convention of
+// indicated by type parameter. codejen follows a naming convention of
 // naming these type parameters "Input" as an indicator for humans that a
 // particular type parameter is used in this way.
 //
 // Each Jenny takes either one or many Inputs, and produces one or many
 // output files. Jennies may also return nils to indicate zero outputs.
 //
-// It is a design tenet of jennywrites that, in code generation, good separation
+// It is a design tenet of codejen that, in code generation, good separation
 // of concerns starts with keeping a single file to a single responsibility. Thus,
 // where possible, most Jennies should aim for one input to one output.
 //

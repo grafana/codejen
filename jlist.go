@@ -1,4 +1,4 @@
-package jennywrites
+package codejen
 
 import (
 	"fmt"
@@ -50,14 +50,6 @@ type JennyList[Input any] struct {
 	inputnamer func(t Input) string
 }
 
-// func (js *JennyList[Input]) LenJennies() int {
-// 	var i int
-// 	for j := js.first; j != nil; j = j.next {
-// 		i++
-// 	}
-// 	return i
-// }
-
 func (js *JennyList[Input]) last() *jnode {
 	j := js.first
 	for j != nil && j.next != nil {
@@ -98,6 +90,18 @@ func (js *JennyList[Input]) GenerateFS(objs []Input) (*FS, error) {
 		if err = fl.Validate(); err != nil {
 			// This is unreachable in the case where there was a single File output, so plural is fine
 			return fmt.Errorf("%s returned invalid Files: %w", j.JennyName(), err)
+		}
+
+		// postprocessing
+		for i, f := range fl {
+			for _, post := range js.post {
+				of, err := post(f)
+				if err != nil {
+					return fmt.Errorf("postprocessing of %s from %s failed: %w", f.RelativePath, jennystack(f.From), err)
+				}
+				f = of
+			}
+			fl[i] = f
 		}
 		return jfs.addValidated(fl...)
 	}
@@ -223,4 +227,14 @@ func (js *JennyList[Input]) AppendOneToMany(jennies ...OneToMany[Input]) {
 // AppendManyToMany is like [JennyList.Append], but typesafe for ManyToMany jennies.
 func (js *JennyList[Input]) AppendManyToMany(jennies ...ManyToMany[Input]) {
 	js.append(tojnode(jennies...)...)
+}
+
+// AddPostprocessors appends a slice of FileMapper to its internal list of
+// postprocessors.
+//
+// Postprocessors are run (FIFO) on every File produced by the JennyList.
+func (js *JennyList[Input]) AddPostprocessors(fn ...FileMapper) {
+	js.mut.Lock()
+	js.post = append(js.post, fn...)
+	js.mut.Unlock()
 }

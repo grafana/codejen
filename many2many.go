@@ -1,4 +1,4 @@
-package jennywrites
+package codejen
 
 // ManyToMany is a Jenny that accepts many inputs, and produces 0 to N files as output.
 type ManyToMany[Input any] interface {

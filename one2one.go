@@ -1,4 +1,4 @@
-package jennywrites
+package codejen
 
 type OneToOne[Input any] interface {
 	Jenny[Input]
@@ -33,3 +33,10 @@ func AdaptOneToOne[OriginalInput, AdaptedInput any](j OneToOne[OriginalInput], f
 		j:  j,
 	}
 }
+
+// MapOneToOne takes a OneToOne jenny and wraps it in a stack of FileMappers to create a
+// new OneToOne jenny. When Generate is called, the output of the OneToOne jenny will be
+// transformed
+// func MapOneToOne[Input any](j OneToOne[Input], fn ...FileMapper) OneToOne[Input] {
+//
+// }

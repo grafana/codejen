@@ -1,4 +1,4 @@
-package jennywrites
+package codejen
 
 import (
 	"context"
@@ -64,19 +64,6 @@ func (js jennystack) String() string {
 		strs[i] = j.JennyName()
 	}
 	return strings.Join(strs, ":")
-}
-
-// ToFS turns a single File into a FS containing only
-// that file, given an owner string.
-//
-// An error is only possible if an absolute path is provided.
-func (f File) ToFS() (*FS, error) {
-	wd := NewFS()
-	err := wd.add(f)
-	if err != nil {
-		return nil, err
-	}
-	return wd, nil
 }
 
 // NewFS creates a new FS, ready for use.
@@ -240,7 +227,7 @@ func (fs *FS) Len() int {
 
 // FileMapper takes a File and transforms it into a new File.
 //
-// jennywrites generally assumes that FileMappers will reuse an
+// codejen generally assumes that FileMappers will reuse an
 // unmodified byte slice.
 type FileMapper func(File) (File, error)
 

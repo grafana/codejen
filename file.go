@@ -1,4 +1,4 @@
-package jennywrites
+package codejen
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ func NewFile(path string, data []byte, from ...NamedJenny) *File {
 // File is a single file, intended to be written or compared against
 // existing files on disk through an [FS].
 //
-// jennywrites treats a File with an empty RelativePath as not existing,
+// codejen treats a File with an empty RelativePath as not existing,
 // regardless of whether Data is empty. Thus, the zero value of File is
 // considered not to exist.
 type File struct {
@@ -63,6 +63,29 @@ func (f File) Validate() error {
 		return fmt.Errorf("%s: File must have at least one From jenny", f.RelativePath)
 	}
 	return nil
+}
+
+// ToFS turns a single File into a FS containing only
+// that file.
+//
+// An error is only possible if the File does not Validate.
+func (f File) ToFS() (*FS, error) {
+	wd := NewFS()
+	err := wd.add(f)
+	if err != nil {
+		return nil, err
+	}
+	return wd, nil
+}
+
+// FromString converts the stack of jennies in File.From to a string by
+// joining them with a colon.
+func (f File) FromString() string {
+	strs := make([]string, len(f.From))
+	for i, j := range f.From {
+		strs[i] = j.JennyName()
+	}
+	return strings.Join(strs, ":")
 }
 
 // Files is a set of File objects.

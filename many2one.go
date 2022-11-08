@@ -1,4 +1,4 @@
-package jennywrites
+package codejen
 
 type ManyToOne[Input any] interface {
 	Jenny[Input]
