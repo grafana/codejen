@@ -50,33 +50,33 @@ type JennyList[Input any] struct {
 	inputnamer func(t Input) string
 }
 
-func (js *JennyList[Input]) last() *jnode {
-	j := js.first
+func (jl *JennyList[Input]) last() *jnode {
+	j := jl.first
 	for j != nil && j.next != nil {
 		j = j.next
 	}
 	return j
 }
 
-func (js *JennyList[Input]) JennyName() string {
+func (jl *JennyList[Input]) JennyName() string {
 	return fmt.Sprintf("JennyList[%s]", reflect.TypeOf(new(Input)).Elem().Name())
 }
 
-func (js *JennyList[Input]) wrapinerr(in Input, err error) error {
+func (jl *JennyList[Input]) wrapinerr(in Input, err error) error {
 	if err == nil {
 		return nil
 	}
-	if js.inputnamer == nil {
+	if jl.inputnamer == nil {
 		return err
 	}
-	return fmt.Errorf("%w for input %q", err, js.inputnamer(in))
+	return fmt.Errorf("%w for input %q", err, jl.inputnamer(in))
 }
 
-func (js *JennyList[Input]) GenerateFS(objs []Input) (*FS, error) {
-	js.mut.RLock()
-	defer js.mut.RUnlock()
+func (jl *JennyList[Input]) GenerateFS(objs []Input) (*FS, error) {
+	jl.mut.RLock()
+	defer jl.mut.RUnlock()
 
-	if js.first == nil {
+	if jl.first == nil {
 		return nil, nil
 	}
 
@@ -94,7 +94,7 @@ func (js *JennyList[Input]) GenerateFS(objs []Input) (*FS, error) {
 
 		// postprocessing
 		for i, f := range fl {
-			for _, post := range js.post {
+			for _, post := range jl.post {
 				of, err := post(f)
 				if err != nil {
 					return fmt.Errorf("postprocessing of %s from %s failed: %w", f.RelativePath, jennystack(f.From), err)
@@ -118,21 +118,21 @@ func (js *JennyList[Input]) GenerateFS(objs []Input) (*FS, error) {
 	}
 
 	result := new(multierror.Error)
-	jn := js.first
+	jn := jl.first
 	for jn != nil {
 		var handlerr error
 		switch jenny := jn.j.(type) {
 		case OneToOne[Input]:
 			for _, obj := range objs {
 				f, err := jenny.Generate(obj)
-				if procerr := js.wrapinerr(obj, oneout(jenny, f, err)); procerr != nil {
+				if procerr := jl.wrapinerr(obj, oneout(jenny, f, err)); procerr != nil {
 					result = multierror.Append(result, procerr)
 				}
 			}
 		case OneToMany[Input]:
 			for _, obj := range objs {
 				fl, err := jenny.Generate(obj)
-				if procerr := js.wrapinerr(obj, manyout(jenny, fl, err)); procerr != nil {
+				if procerr := jl.wrapinerr(obj, manyout(jenny, fl, err)); procerr != nil {
 					result = multierror.Append(result, procerr)
 				}
 			}
@@ -159,27 +159,27 @@ func (js *JennyList[Input]) GenerateFS(objs []Input) (*FS, error) {
 	return jfs, nil
 }
 
-func (js *JennyList[Input]) Generate(objs []Input) (Files, error) {
-	jfs, err := js.GenerateFS(objs)
+func (jl *JennyList[Input]) Generate(objs []Input) (Files, error) {
+	jfs, err := jl.GenerateFS(objs)
 	if err != nil {
 		return nil, err
 	}
 	return jfs.AsFiles(), nil
 }
 
-func (js *JennyList[Input]) append(n ...*jnode) {
-	js.mut.Lock()
-	last := js.last()
+func (jl *JennyList[Input]) append(n ...*jnode) {
+	jl.mut.Lock()
+	last := jl.last()
 	if last == nil {
-		js.first = n[0]
+		jl.first = n[0]
 		n = n[1:]
-		last = js.first
+		last = jl.first
 	}
 	for _, jn := range n {
 		last.next = jn
 		last = last.next
 	}
-	js.mut.Unlock()
+	jl.mut.Unlock()
 }
 
 func tojnode[J NamedJenny](jennies ...J) []*jnode {
@@ -198,7 +198,7 @@ func tojnode[J NamedJenny](jennies ...J) []*jnode {
 // All provided jennies must also implement one of [OneToOne], [OneToMany],
 // [ManyToOne], [ManyToMany], or this method will panic. For proper type safety,
 // use the Append* methods.
-func (js *JennyList[Input]) Append(jennies ...Jenny[Input]) {
+func (jl *JennyList[Input]) Append(jennies ...Jenny[Input]) {
 	nlist := make([]*jnode, len(jennies))
 	for i, j := range jennies {
 		switch j.(type) {
@@ -210,35 +210,35 @@ func (js *JennyList[Input]) Append(jennies ...Jenny[Input]) {
 			panic(fmt.Sprintf("%T is not a valid Jenny, must implement (OneToOne | OneToMany | ManyToOne | ManyToMany)", j))
 		}
 	}
-	js.append(nlist...)
+	jl.append(nlist...)
 }
 
 // AppendOneToOne is like [JennyList.Append], but typesafe for OneToOne jennies.
-func (js *JennyList[Input]) AppendOneToOne(jennies ...OneToOne[Input]) {
-	js.append(tojnode(jennies...)...)
+func (jl *JennyList[Input]) AppendOneToOne(jennies ...OneToOne[Input]) {
+	jl.append(tojnode(jennies...)...)
 }
 
 // AppendManyToOne is like [JennyList.Append], but typesafe for ManyToOne jennies.
-func (js *JennyList[Input]) AppendManyToOne(jennies ...ManyToOne[Input]) {
-	js.append(tojnode(jennies...)...)
+func (jl *JennyList[Input]) AppendManyToOne(jennies ...ManyToOne[Input]) {
+	jl.append(tojnode(jennies...)...)
 }
 
 // AppendOneToMany is like [JennyList.Append], but typesafe for OneToMany jennies.
-func (js *JennyList[Input]) AppendOneToMany(jennies ...OneToMany[Input]) {
-	js.append(tojnode(jennies...)...)
+func (jl *JennyList[Input]) AppendOneToMany(jennies ...OneToMany[Input]) {
+	jl.append(tojnode(jennies...)...)
 }
 
 // AppendManyToMany is like [JennyList.Append], but typesafe for ManyToMany jennies.
-func (js *JennyList[Input]) AppendManyToMany(jennies ...ManyToMany[Input]) {
-	js.append(tojnode(jennies...)...)
+func (jl *JennyList[Input]) AppendManyToMany(jennies ...ManyToMany[Input]) {
+	jl.append(tojnode(jennies...)...)
 }
 
 // AddPostprocessors appends a slice of FileMapper to its internal list of
 // postprocessors.
 //
 // Postprocessors are run (FIFO) on every File produced by the JennyList.
-func (js *JennyList[Input]) AddPostprocessors(fn ...FileMapper) {
-	js.mut.Lock()
-	js.post = append(js.post, fn...)
-	js.mut.Unlock()
+func (jl *JennyList[Input]) AddPostprocessors(fn ...FileMapper) {
+	jl.mut.Lock()
+	jl.post = append(jl.post, fn...)
+	jl.mut.Unlock()
 }
