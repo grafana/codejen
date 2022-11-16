@@ -3,9 +3,8 @@ package codejen
 // A Jenny is a single codejen code generator.
 //
 // Each Jenny works with exactly one type of input to its code generation, as
-// indicated by type parameter. codejen follows a naming convention of
-// naming these type parameters "Input" as an indicator for humans that a
-// particular type parameter is used in this way.
+// indicated by its I type parameter, which may be any. The type [Input] is used
+// as an indicator to humans of the purpose of such type parameters.
 //
 // Each Jenny takes either one or many Inputs, and produces one or many
 // output files. Jennies may also return nils to indicate zero outputs.
@@ -18,19 +17,19 @@ package codejen
 // necessary abstraction over individual kinds of Jennies as part of the Jenny
 // interface itself. As such, the actual, functional interface is split into four:
 //
-//   - [OneToOne]: one Input in, one [File] out
-//   - [OneToMany]: one Input in, many [File]s out
-//   - [ManyToOne]: many Inputs in, one [File] out
-//   - [ManyToMany]: many Inputs in, many [File]s out
+//   - [OneToOne]: one [Input] in, one [File] out
+//   - [OneToMany]: one [Input] in, many [File]s out
+//   - [ManyToOne]: many [Input]s in, one [File] out
+//   - [ManyToMany]: many [Input]s in, many [File]s out
 //
 // All jennies will follow exactly one of these four interfaces.
-type Jenny[Input any] interface {
+type Jenny[I Input] interface {
 	// JennyName returns the name of the generator.
 	JennyName() string
 
 	// if only the type system let us do something like this, the API surface of
 	// this library would shrink to a quarter its current size. so much more crisp
-	// OneToOne[Input] | ManyToOne[Input any] | OneToMany[Input] | ManyToMany[Input]
+	// OneToOne[I] | ManyToOne[I any] | OneToMany[I] | ManyToMany[I]
 }
 
 // NamedJenny includes just the JennyName method. We have to have this interface
@@ -39,10 +38,18 @@ type NamedJenny interface {
 	JennyName() string
 }
 
-// This library was originally written with the type Jinspiration used as the
-// type for Input type parameters. As in, `type Jenny[Input Jinspiration]`.
+// Input is used in generic type parameters solely to indicate to
+// human eyes that that type parameter is used to govern the type passed as input to
+// a jenny's Generate method.
+//
+// Input is an alias for any, because the codejen framework takes no stance on
+// what can be accepted as jenny inputs.
+type Input = any
+
+// This library was originally written with Jinspiration as the name instead of
+// Input.
 //
 // It's preserved here because you, dear reader of source code, deserve to
 // giggle today.
 //
-// type Jinspiration any
+// type Jinspiration = any

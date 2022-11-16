@@ -1,34 +1,34 @@
 package codejen
 
-type OneToOne[Input any] interface {
-	Jenny[Input]
+type OneToOne[I Input] interface {
+	Jenny[I]
 
 	// Generate takes an Input and generates one [File]. The zero value of a File
 	// may be returned to indicate the jenny was a no-op for the provided Input.
-	Generate(Input) (*File, error)
+	Generate(I) (*File, error)
 }
 
-type o2oAdapt[OriginalInput, AdaptedInput any] struct {
-	fn func(AdaptedInput) OriginalInput
-	j  OneToOne[OriginalInput]
+type o2oAdapt[InI, OutI Input] struct {
+	fn func(OutI) InI
+	j  OneToOne[InI]
 }
 
-func (oa *o2oAdapt[OriginalInput, AdaptedInput]) JennyName() string {
+func (oa *o2oAdapt[InI, OutI]) JennyName() string {
 	return oa.j.JennyName()
 }
 
-func (oa *o2oAdapt[OriginalInput, AdaptedInput]) Generate(t AdaptedInput) (*File, error) {
+func (oa *o2oAdapt[InI, OutI]) Generate(t OutI) (*File, error) {
 	return oa.j.Generate(oa.fn(t))
 }
 
 // AdaptOneToOne takes a OneToOne jenny that accepts a particular type as input
-// (OriginalInput), and transforms it into a jenny that accepts a different type
-// as input (AdaptedInput), given a function that can transform an OriginalInput
-// to an AdaptedInput.
+// (InI), and transforms it into a jenny that accepts a different type
+// as input (OutI), given a function that can transform an InI
+// to an OutI.
 //
 // Use this to make jennies reusable in other Input type contexts.
-func AdaptOneToOne[OriginalInput, AdaptedInput any](j OneToOne[OriginalInput], fn func(AdaptedInput) OriginalInput) OneToOne[AdaptedInput] {
-	return &o2oAdapt[OriginalInput, AdaptedInput]{
+func AdaptOneToOne[InI, OutI Input](j OneToOne[InI], fn func(OutI) InI) OneToOne[OutI] {
+	return &o2oAdapt[InI, OutI]{
 		fn: fn,
 		j:  j,
 	}
@@ -37,6 +37,6 @@ func AdaptOneToOne[OriginalInput, AdaptedInput any](j OneToOne[OriginalInput], f
 // MapOneToOne takes a OneToOne jenny and wraps it in a stack of FileMappers to create a
 // new OneToOne jenny. When Generate is called, the output of the OneToOne jenny will be
 // transformed
-// func MapOneToOne[Input any](j OneToOne[Input], fn ...FileMapper) OneToOne[Input] {
+// func MapOneToOne[I Input](j OneToOne[I], fn ...FileMapper) OneToOne[I] {
 //
 // }
