@@ -4,12 +4,12 @@ package codejen
 type ManyToMany[Input any] interface {
 	Jenny[Input]
 
-	// Generate takes a slice of Input and generates many [File]s, or none (nil) if the j
-	// was a no-op for the provided Input.
+	// Generate takes a slice of Input and generates many [File]s, or none
+	// (nil) if the j was a no-op for the provided Input.
 	//
 	// A nil, nil return is used to indicate the generator had nothing to do for the
 	// provided Input.
-	Generate([]Input) (Files, error)
+	Generate(...Input) (Files, error)
 }
 
 type m2mAdapt[OriginalInput, AdaptedInput any] struct {
@@ -21,12 +21,12 @@ func (oa *m2mAdapt[OriginalInput, AdaptedInput]) JennyName() string {
 	return oa.j.JennyName()
 }
 
-func (oa *m2mAdapt[OriginalInput, AdaptedInput]) Generate(ps []AdaptedInput) (Files, error) {
+func (oa *m2mAdapt[OriginalInput, AdaptedInput]) Generate(ps ...AdaptedInput) (Files, error) {
 	qs := make([]OriginalInput, len(ps))
 	for i, p := range ps {
 		qs[i] = oa.fn(p)
 	}
-	return oa.j.Generate(qs)
+	return oa.j.Generate(qs...)
 }
 
 // AdaptManyToMany takes a ManyToMany jenny that accepts a particular type as input

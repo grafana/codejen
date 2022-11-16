@@ -22,6 +22,8 @@ func JennyListWithNamer[Input any](namer func(t Input) string) *JennyList[Input]
 	}
 }
 
+var _ ManyToMany[any] = &JennyList[any]{}
+
 // JennyList is an ordered collection of jennies. JennyList itself implements
 // [ManyToMany], and when called, will construct an [FS] by calling each of its
 // contained jennies in order.
@@ -72,7 +74,7 @@ func (jl *JennyList[Input]) wrapinerr(in Input, err error) error {
 	return fmt.Errorf("%w for input %q", err, jl.inputnamer(in))
 }
 
-func (jl *JennyList[Input]) GenerateFS(objs []Input) (*FS, error) {
+func (jl *JennyList[Input]) GenerateFS(objs ...Input) (*FS, error) {
 	jl.mut.RLock()
 	defer jl.mut.RUnlock()
 
@@ -82,12 +84,12 @@ func (jl *JennyList[Input]) GenerateFS(objs []Input) (*FS, error) {
 
 	jfs := NewFS()
 
-	manyout := func(j Jenny[Input], fl Files, err error) error {
+	manyout := func(j Jenny[Input], err error, fl ...File) error {
 		if err != nil {
 			return fmt.Errorf("%s: %w", j.JennyName(), err)
 		}
 
-		if err = fl.Validate(); err != nil {
+		if err = Files(fl).Validate(); err != nil {
 			// This is unreachable in the case where there was a single File output, so plural is fine
 			return fmt.Errorf("%s returned invalid Files: %w", j.JennyName(), err)
 		}
@@ -106,15 +108,11 @@ func (jl *JennyList[Input]) GenerateFS(objs []Input) (*FS, error) {
 		return jfs.addValidated(fl...)
 	}
 	oneout := func(j Jenny[Input], f *File, err error) error {
-		// err will be handled in manyout
-		var fl Files
-		if f != nil && f.Exists() {
-			fl = Files{*f}
+		// errs and empty file case are handled by manyout with a zero-len variadic arg
+		if err != nil || f == nil || !f.Exists() {
+			return manyout(j, err)
 		}
-		if err == nil && len(fl) == 0 {
-			return nil
-		}
-		return manyout(j, fl, err)
+		return manyout(j, err, *f)
 	}
 
 	result := new(multierror.Error)
@@ -132,16 +130,16 @@ func (jl *JennyList[Input]) GenerateFS(objs []Input) (*FS, error) {
 		case OneToMany[Input]:
 			for _, obj := range objs {
 				fl, err := jenny.Generate(obj)
-				if procerr := jl.wrapinerr(obj, manyout(jenny, fl, err)); procerr != nil {
+				if procerr := jl.wrapinerr(obj, manyout(jenny, err, fl...)); procerr != nil {
 					result = multierror.Append(result, procerr)
 				}
 			}
 		case ManyToOne[Input]:
-			f, err := jenny.Generate(objs)
+			f, err := jenny.Generate(objs...)
 			handlerr = oneout(jenny, f, err)
 		case ManyToMany[Input]:
-			fl, err := jenny.Generate(objs)
-			handlerr = manyout(jenny, fl, err)
+			fl, err := jenny.Generate(objs...)
+			handlerr = manyout(jenny, err, fl...)
 		default:
 			panic("unreachable")
 		}
@@ -159,8 +157,8 @@ func (jl *JennyList[Input]) GenerateFS(objs []Input) (*FS, error) {
 	return jfs, nil
 }
 
-func (jl *JennyList[Input]) Generate(objs []Input) (Files, error) {
-	jfs, err := jl.GenerateFS(objs)
+func (jl *JennyList[Input]) Generate(objs ...Input) (Files, error) {
+	jfs, err := jl.GenerateFS(objs...)
 	if err != nil {
 		return nil, err
 	}

@@ -6,7 +6,7 @@ type ManyToOne[Input any] interface {
 	// Generate takes a slice of Input and generates one File, The zero value of a
 	// File may be returned to indicate the jenny was a no-op for the provided
 	// Inputs.
-	Generate([]Input) (*File, error)
+	Generate(...Input) (*File, error)
 }
 
 type m2oAdapt[OriginalInput, AdaptedInput any] struct {
@@ -18,12 +18,12 @@ func (oa *m2oAdapt[OriginalInput, AdaptedInput]) JennyName() string {
 	return oa.g.JennyName()
 }
 
-func (oa *m2oAdapt[OriginalInput, AdaptedInput]) Generate(ps []AdaptedInput) (*File, error) {
+func (oa *m2oAdapt[OriginalInput, AdaptedInput]) Generate(ps ...AdaptedInput) (*File, error) {
 	qs := make([]OriginalInput, len(ps))
 	for i, p := range ps {
 		qs[i] = oa.fn(p)
 	}
-	return oa.g.Generate(qs)
+	return oa.g.Generate(qs...)
 }
 
 // AdaptManyToOne takes a ManyToOne jenny that accepts a particular type as input
