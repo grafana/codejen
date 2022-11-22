@@ -205,12 +205,16 @@ func (fs *FS) addValidated(flist ...File) error {
 
 // Merge combines all the entries from the provided FS into the receiver
 // FS. Duplicate paths result in an error.
-func (fs *FS) Merge(wd2 *FS) error {
+func (fs *FS) Merge(fs2 *FS) error {
+	if fs2 == nil {
+		return nil
+	}
+
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
-	flist := make([]File, 0, len(wd2.mapFS))
-	for k, inf := range wd2.mapFS {
+	flist := make([]File, 0, len(fs2.mapFS))
+	for k, inf := range fs2.mapFS {
 		flist = append(flist, toFile(k, inf))
 	}
 
