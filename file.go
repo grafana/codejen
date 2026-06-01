@@ -91,7 +91,7 @@ func (f File) FromString() string {
 // Files is a set of File objects.
 //
 // A Files is [Files.Invalid] if it contains a File that does not [File.Exists],
-// or if it contains more than one File having the same [File.RelativePath].
+// or if it contains more than one File having the same [File.RelativePath] (note: this is case-insensitive).
 //
 // These invariants are internally enforced by FS.
 type Files []File
@@ -100,14 +100,16 @@ func (fsl Files) Validate() error {
 	var result *multierror.Error
 	paths := make(map[string][][]NamedJenny)
 	for _, f := range fsl {
+		normalizedPath := strings.ToLower(f.RelativePath)
+
 		if err := f.Validate(); err != nil {
 			result = multierror.Append(result, err)
 		} else if !f.Exists() {
 			result = multierror.Append(result, fmt.Errorf(`nonexistent File (RelativePath == "") not allowed within Files slice`))
-		} else if exist, has := paths[f.RelativePath]; has {
-			paths[f.RelativePath] = append(exist, f.From)
+		} else if exist, has := paths[normalizedPath]; has {
+			paths[normalizedPath] = append(exist, f.From)
 		} else {
-			paths[f.RelativePath] = [][]NamedJenny{f.From}
+			paths[normalizedPath] = [][]NamedJenny{f.From}
 		}
 	}
 	for path, froms := range paths {
