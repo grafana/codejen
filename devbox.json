@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/main/.schema/devbox.schema.json",
+  "packages": [
+    "go@1.26",
+    "golangci-lint@2.9.0"
+  ],
+  "shell": {
+    "init_hook": [
+      "echo 'Installing dependencies...' && make deps"
+    ]
+  }
+}
