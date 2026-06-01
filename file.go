@@ -1,11 +1,10 @@
 package codejen
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
-
-	"github.com/hashicorp/go-multierror"
 )
 
 // NewFile makes it slightly more ergonomic to create a new File than
@@ -97,15 +96,16 @@ func (f File) FromString() string {
 type Files []File
 
 func (fsl Files) Validate() error {
-	var result *multierror.Error
+	var errs []error
+
 	paths := make(map[string][][]NamedJenny)
 	for _, f := range fsl {
 		normalizedPath := strings.ToLower(f.RelativePath)
 
 		if err := f.Validate(); err != nil {
-			result = multierror.Append(result, err)
+			errs = append(errs, err)
 		} else if !f.Exists() {
-			result = multierror.Append(result, fmt.Errorf(`nonexistent File (RelativePath == "") not allowed within Files slice`))
+			errs = append(errs, fmt.Errorf(`nonexistent File (RelativePath == "") not allowed within Files slice`))
 		} else if exist, has := paths[normalizedPath]; has {
 			paths[normalizedPath] = append(exist, f.From)
 		} else {
@@ -118,8 +118,9 @@ func (fsl Files) Validate() error {
 			for _, from := range froms {
 				fstr = append(fstr, "'"+jennystack(from).String()+"'")
 			}
-			result = multierror.Append(result, fmt.Errorf("multiple files at path %s from jennies: %s", path, strings.Join(fstr, ", ")))
+			errs = append(errs, fmt.Errorf("multiple files at path %s from jennies: %s", path, strings.Join(fstr, ", ")))
 		}
 	}
-	return result.ErrorOrNil()
+
+	return errors.Join(errs...)
 }
