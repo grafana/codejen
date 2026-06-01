@@ -1,10 +1,9 @@
 package codejen
 
 import (
+	"errors"
 	"fmt"
 	"sync"
-
-	"github.com/hashicorp/go-multierror"
 )
 
 type jnode struct {
@@ -114,7 +113,7 @@ func (jl *JennyList[Input]) GenerateFS(objs ...Input) (*FS, error) {
 		return manyout(j, err, *f)
 	}
 
-	result := new(multierror.Error)
+	var errs []error
 	jn := jl.first
 	for jn != nil {
 		var handlerr error
@@ -123,14 +122,14 @@ func (jl *JennyList[Input]) GenerateFS(objs ...Input) (*FS, error) {
 			for _, obj := range objs {
 				f, err := jenny.Generate(obj)
 				if procerr := jl.wrapinerr(obj, oneout(jenny, f, err)); procerr != nil {
-					result = multierror.Append(result, procerr)
+					errs = append(errs, procerr)
 				}
 			}
 		case OneToMany[Input]:
 			for _, obj := range objs {
 				fl, err := jenny.Generate(obj)
 				if procerr := jl.wrapinerr(obj, manyout(jenny, err, fl...)); procerr != nil {
-					result = multierror.Append(result, procerr)
+					errs = append(errs, procerr)
 				}
 			}
 		case ManyToOne[Input]:
@@ -144,13 +143,13 @@ func (jl *JennyList[Input]) GenerateFS(objs ...Input) (*FS, error) {
 		}
 
 		if handlerr != nil {
-			result = multierror.Append(result, handlerr)
+			errs = append(errs, handlerr)
 		}
 		jn = jn.next
 	}
 
-	if result.ErrorOrNil() != nil {
-		return nil, multierror.Flatten(result)
+	if len(errs) != 0 {
+		return nil, errors.Join(errs...)
 	}
 
 	return jfs, nil
