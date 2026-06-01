@@ -51,7 +51,7 @@ func (fsys mapFS) Open(name string) (fs.File, error) {
 	file := fsys[name]
 	if file != nil && file.Mode&fs.ModeDir == 0 {
 		// Ordinary file
-		return &openMapFile{name, mapFileInfo{path.Base(name), file}, 0}, nil
+		return &openMapFile{path: name, mapFileInfo: mapFileInfo{name: path.Base(name), f: file}, offset: 0}, nil
 	}
 
 	// Directory, possibly synthesized.
@@ -60,14 +60,14 @@ func (fsys mapFS) Open(name string) (fs.File, error) {
 	// Either way, we need to construct the list of children of this directory.
 	var list []mapFileInfo
 	var elem string
-	var need = make(map[string]bool)
+	need := make(map[string]bool)
 	if name == "." {
 		elem = "."
 		for fname, f := range fsys {
 			i := strings.Index(fname, "/")
 			if i < 0 {
 				if fname != "." {
-					list = append(list, mapFileInfo{fname, f})
+					list = append(list, mapFileInfo{name: fname, f: f})
 				}
 			} else {
 				need[fname[:i]] = true
@@ -81,7 +81,7 @@ func (fsys mapFS) Open(name string) (fs.File, error) {
 				felem := fname[len(prefix):]
 				i := strings.Index(felem, "/")
 				if i < 0 {
-					list = append(list, mapFileInfo{felem, f})
+					list = append(list, mapFileInfo{name: felem, f: f})
 				} else {
 					need[fname[len(prefix):len(prefix)+i]] = true
 				}
@@ -98,7 +98,7 @@ func (fsys mapFS) Open(name string) (fs.File, error) {
 		delete(need, fi.name)
 	}
 	for name := range need {
-		list = append(list, mapFileInfo{name, &mapFile{Mode: fs.ModeDir}})
+		list = append(list, mapFileInfo{name: name, f: &mapFile{Mode: fs.ModeDir}})
 	}
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].name < list[j].name
@@ -107,7 +107,7 @@ func (fsys mapFS) Open(name string) (fs.File, error) {
 	if file == nil {
 		file = &mapFile{Mode: fs.ModeDir}
 	}
-	return &mapDir{name, mapFileInfo{elem, file}, list, 0}, nil
+	return &mapDir{path: name, mapFileInfo: mapFileInfo{name: elem, f: file}, entry: list, offset: 0}, nil
 }
 
 // fsOnly is a wrapper that hides all but the fs.FS methods,
@@ -161,8 +161,9 @@ func (i *mapFileInfo) Info() (fs.FileInfo, error) { return i, nil }
 
 // An openMapFile is a regular (non-directory) fs.File open for reading.
 type openMapFile struct {
-	path string
 	mapFileInfo
+
+	path   string
 	offset int64
 }
 
@@ -209,17 +210,18 @@ func (f *openMapFile) ReadAt(b []byte, offset int64) (int, error) {
 	return n, nil
 }
 
-// A mapDir is a directory fs.File (so also an fs.ReadDirFile) open for reading.
+// A mapDir is a directory fs.File (so also a fs.ReadDirFile) open for reading.
 type mapDir struct {
-	path string
 	mapFileInfo
+
+	path   string
 	entry  []mapFileInfo
 	offset int
 }
 
 func (d *mapDir) Stat() (fs.FileInfo, error) { return &d.mapFileInfo, nil }
 func (d *mapDir) Close() error               { return nil }
-func (d *mapDir) Read(b []byte) (int, error) {
+func (d *mapDir) Read(_ []byte) (int, error) {
 	return 0, &fs.PathError{Op: "read", Path: d.path, Err: fs.ErrInvalid}
 }
 

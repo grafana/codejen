@@ -5,7 +5,7 @@ type OneToOne[I Input] interface {
 
 	// Generate takes an Input and generates one [File]. The zero value of a File
 	// may be returned to indicate the jenny was a no-op for the provided Input.
-	Generate(I) (*File, error)
+	Generate(input I) (*File, error)
 }
 
 type o2oAdapt[InI, OutI Input] struct {
@@ -33,10 +33,3 @@ func AdaptOneToOne[InI, OutI Input](j OneToOne[InI], fn func(OutI) InI) OneToOne
 		j:  j,
 	}
 }
-
-// MapOneToOne takes a OneToOne jenny and wraps it in a stack of FileMappers to create a
-// new OneToOne jenny. When Generate is called, the output of the OneToOne jenny will be
-// transformed
-// func MapOneToOne[I Input](j OneToOne[I], fn ...FileMapper) OneToOne[I] {
-//
-// }

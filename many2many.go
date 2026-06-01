@@ -9,7 +9,7 @@ type ManyToMany[I Input] interface {
 	//
 	// A nil, nil return is used to indicate the generator had nothing to do for the
 	// provided Input.
-	Generate(...I) (Files, error)
+	Generate(inputs ...I) (Files, error)
 }
 
 type m2mAdapt[InI, OutI Input] struct {

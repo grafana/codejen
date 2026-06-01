@@ -36,13 +36,6 @@ type File struct {
 	From []NamedJenny
 }
 
-func (f File) toMapFile() *mapFile {
-	return &mapFile{
-		Data: f.Data,
-		Sys:  f.From,
-	}
-}
-
 // Exists indicates whether the File should be considered to exist.
 func (f File) Exists() bool {
 	return f.RelativePath != ""

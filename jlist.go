@@ -77,7 +77,7 @@ func (jl *JennyList[Input]) GenerateFS(objs ...Input) (*FS, error) {
 	defer jl.mut.RUnlock()
 
 	if jl.first == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	jfs := NewFS()
