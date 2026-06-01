@@ -5,7 +5,7 @@ type OneToMany[I Input] interface {
 
 	// Generate takes an Input and generates many [File]s, or none (nil) if the j
 	// was a no-op for the provided Input.
-	Generate(I) (Files, error)
+	Generate(input I) (Files, error)
 }
 
 type o2mAdapt[InI, OutI Input] struct {

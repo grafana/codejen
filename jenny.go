@@ -23,9 +23,8 @@ package codejen
 //   - [ManyToMany]: many [Input]s in, many [File]s out
 //
 // All jennies will follow exactly one of these four interfaces.
-type Jenny[I Input] interface {
-	// JennyName returns the name of the generator.
-	JennyName() string
+type Jenny[I Input] interface { //nolint:iface
+	NamedJenny
 
 	// if only the type system let us do something like this, the API surface of
 	// this library would shrink to a quarter its current size. so much more crisp
@@ -34,22 +33,14 @@ type Jenny[I Input] interface {
 
 // NamedJenny includes just the JennyName method. We have to have this interface
 // due to the limits on Go's type system.
-type NamedJenny interface {
+type NamedJenny interface { //nolint:iface
 	JennyName() string
 }
 
 // Input is used in generic type parameters solely to indicate to
-// human eyes that that type parameter is used to govern the type passed as input to
+// human eyes that this type parameter is used to govern the type passed as input to
 // a jenny's Generate method.
 //
 // Input is an alias for any, because the codejen framework takes no stance on
 // what can be accepted as jenny inputs.
 type Input = any
-
-// This library was originally written with Jinspiration as the name instead of
-// Input.
-//
-// It's preserved here because you, dear reader of source code, deserve to
-// giggle today.
-//
-// type Jinspiration = any

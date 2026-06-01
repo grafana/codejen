@@ -6,7 +6,7 @@ type ManyToOne[I Input] interface {
 	// Generate takes a slice of Input and generates one File, The zero value of a
 	// File may be returned to indicate the jenny was a no-op for the provided
 	// Inputs.
-	Generate(...I) (*File, error)
+	Generate(inputs ...I) (*File, error)
 }
 
 type m2oAdapt[InI, OutI Input] struct {

@@ -41,6 +41,7 @@ import (
 // removed.
 type FS struct {
 	mapFS
+
 	mu sync.RWMutex
 }
 
@@ -132,7 +133,7 @@ func (fs *FS) Write(ctx context.Context, prefix string) error {
 				return fmt.Errorf("%s: failed to ensure parent directory exists: %w", path, err)
 			}
 
-			if err := os.WriteFile(path, it.Data, 0644); err != nil {
+			if err := os.WriteFile(path, it.Data, 0644); err != nil { //nolint:gosec
 				return fmt.Errorf("%s: error while writing file: %w", path, err)
 			}
 			return nil
